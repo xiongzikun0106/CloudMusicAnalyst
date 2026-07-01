@@ -10,22 +10,34 @@
   <div class="container">
     <header>
       <h1>🎵 歌单品味锐评助手</h1>
-      <p class="subtitle">输入网易云用户ID，生成AI锐评提示词</p>
+      <p class="subtitle">输入网易云用户昵称或UID，生成AI锐评提示词</p>
     </header>
 
-    <!-- Step 1: 输入用户ID -->
+    <!-- Step 1: 输入用户昵称或UID -->
     <section class="step" id="step1">
-      <h2>Step 1 · 输入用户ID</h2>
+      <h2>Step 1 · 输入用户昵称或UID</h2>
       <div class="input-group">
-        <input type="text" id="uidInput" placeholder="请输入网易云用户UID" />
-        <button id="fetchPlaylistsBtn" class="btn primary">获取歌单</button>
+        <input type="text" id="uidInput" placeholder="支持用户昵称或UID（数字）" />
+        <button id="fetchPlaylistsBtn" class="btn primary">查询</button>
       </div>
+      <div id="step1Hint" class="hint-text">💡 输入昵称会自动搜索匹配的用户；输入数字UID直接查询</div>
       <div id="step1Error" class="error-msg"></div>
+    </section>
+
+    <!-- 用户选择（重名时展示） -->
+    <section class="step" id="userSelectStep" style="display:none">
+      <h2>找到多个用户，请选择</h2>
+      <div id="userSelectContainer"></div>
+      <div class="actions">
+        <button id="confirmUserBtn" class="btn primary" disabled>确认选择</button>
+        <button id="backToStep1Btn" class="btn secondary">← 返回</button>
+      </div>
     </section>
 
     <!-- Step 2: 选择歌单 -->
     <section class="step" id="step2" style="display:none">
       <h2>Step 2 · 选择歌单</h2>
+      <div id="selectedUserInfo" class="user-info-bar"></div>
       <div id="playlistContainer"></div>
       <div class="actions">
         <button id="generateBtn" class="btn primary" disabled>生成提示词</button>
