@@ -120,29 +120,38 @@
     showLoading(`正在搜索用户"${nickname}"...`);
 
     try {
-      const data = await apiFetch(`/user/get_userids?nicknames=${encodeURIComponent(nickname)}`);
+      const data = await apiFetch(`/get/userids?nicknames=${encodeURIComponent(nickname)}`);
       if (data.code !== 200) {
         throw new Error(data.msg || `API 返回错误码: ${data.code}`);
       }
 
-      // 解析返回结果
-      // 返回格式: { code: 200, body: { code: 200, userIds: [...] } }
-      const userIds = data.body?.userIds || [];
+      // 返回格式: { code: 200, nicknames: { "昵称": UID, ... } }
+      // 如果搜到的昵称不匹配，返回的 key 是搜索用的昵称
+      const nicknames = data.nicknames || {};
+      const entries = Object.entries(nicknames);
 
-      if (userIds.length === 0) {
+      if (entries.length === 0) {
         throw new Error(`未找到昵称为"${nickname}"的用户`);
       }
 
-      if (userIds.length === 1) {
+      // 过滤：只保留 key 包含搜索词的（模糊匹配）
+      const matched = entries.filter(([name]) =>
+        name.toLowerCase().includes(nickname.toLowerCase())
+      );
+
+      if (matched.length === 0) {
+        throw new Error(`未找到昵称为"${nickname}"的用户`);
+      }
+
+      if (matched.length === 1) {
         // 唯一用户，直接跳转
-        const user = userIds[0];
-        currentUid = String(user.userId);
-        currentNickname = user.nickname || nickname;
+        currentUid = String(matched[0][1]);
+        currentNickname = matched[0][0];
         await fetchPlaylistsByUid(currentUid);
       } else {
         // 多个同名用户，展示选择界面
         currentNickname = nickname;
-        showUserSelection(userIds);
+        showUserSelection(matched);
       }
     } catch (err) {
       showError(err.message || '搜索用户失败');
@@ -159,22 +168,20 @@
     const title = document.querySelector('#userSelectStep h2');
     title.textContent = `找到 ${users.length} 个"${escapeHtml(currentNickname)}"，请选择`;
 
-    users.forEach((user) => {
+    users.forEach(([name, uid]) => {
       const div = document.createElement('div');
       div.className = 'user-select-item';
-      div.dataset.uid = user.userId;
-      div.dataset.nickname = user.nickname || currentNickname;
+      div.dataset.uid = uid;
+      div.dataset.nickname = name;
 
-      const avatarUrl = user.avatarUrl || '';
       const defaultAvatar = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22><rect width=%2248%22 height=%2248%22 fill=%22%23e8e8ed%22/><text x=%2224%22 y=%2232%22 text-anchor=%22middle%22 font-size=%2224%22>👤</text></svg>';
 
       div.innerHTML = `
         <input type="radio" name="userSelect" class="user-select-radio" />
-        <img class="user-select-avatar" src="${avatarUrl}" alt="${escapeHtml(user.nickname || '')}"
-             onerror="this.src='${defaultAvatar}'" />
+        <img class="user-select-avatar" src="${defaultAvatar}" />
         <div class="user-select-info">
-          <div class="user-select-name">${escapeHtml(user.nickname || '匿名用户')}</div>
-          <div class="user-select-meta">UID: ${user.userId}</div>
+          <div class="user-select-name">${escapeHtml(name)}</div>
+          <div class="user-select-meta">UID: ${uid}</div>
         </div>
       `;
 
