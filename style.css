@@ -70,6 +70,12 @@ header h1 {
   border-color: #0071e3;
 }
 
+.hint-text {
+  color: #86868b;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
 .error-msg {
   color: #ff3b30;
   font-size: 13px;
@@ -142,6 +148,92 @@ header h1 {
   border-radius: 20px;
   font-size: 13px;
   color: #636366;
+}
+
+/* User info bar */
+.user-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f0f7ff;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.user-info-bar .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e8e8ed;
+}
+
+.user-info-bar .user-detail {
+  flex: 1;
+}
+
+.user-info-bar .user-name {
+  font-weight: 600;
+}
+
+.user-info-bar .user-uid {
+  font-size: 12px;
+  color: #86868b;
+}
+
+/* User select items */
+.user-select-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid #e8e8ed;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-select-item:hover {
+  border-color: #c7c7cc;
+}
+
+.user-select-item.selected {
+  border-color: #0071e3;
+  background: #f0f7ff;
+}
+
+.user-select-item input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #0071e3;
+  cursor: pointer;
+}
+
+.user-select-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e8e8ed;
+}
+
+.user-select-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-select-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-select-meta {
+  font-size: 12px;
+  color: #86868b;
+  margin-top: 2px;
 }
 
 /* Playlist items */

@@ -6,15 +6,19 @@
   const uidInput = $('uidInput');
   const fetchBtn = $('fetchPlaylistsBtn');
   const step1 = $('step1');
+  const userSelectStep = $('userSelectStep');
   const step2 = $('step2');
   const step3 = $('step3');
   const step1Error = $('step1Error');
+  const userSelectContainer = $('userSelectContainer');
+  const confirmUserBtn = $('confirmUserBtn');
+  const backToStep1Btn = $('backToStep1Btn');
+  const selectedUserInfo = $('selectedUserInfo');
   const playlistContainer = $('playlistContainer');
   const generateBtn = $('generateBtn');
   const selectAllBtn = $('selectAllBtn');
   const deselectAllBtn = $('deselectAllBtn');
   const resultContainer = $('resultContainer');
-  const resultActions = $('resultActions');
   const exportTxtBtn = $('exportTxtBtn');
   const backBtn = $('backBtn');
   const songCount = $('songCount');
@@ -27,8 +31,9 @@
 
   /* ---------- 全局状态 ---------- */
   let currentUid = '';
-  let rawPlaylists = [];         // 从 API 获取的原始歌单列表
-  let allSongs = [];            // 合并后的所有歌曲 { name, artist }
+  let currentNickname = '';
+  let rawPlaylists = [];
+  let allSongs = [];
   let totalSongCount = 0;
 
   /* ---------- 工具函数 ---------- */
@@ -47,19 +52,15 @@
     step1Error.textContent = '';
   }
 
-  // 格式化歌曲为 "歌名 - 歌手"
   function formatSong(s) {
     return `${s.name} - ${s.artist}`;
   }
 
-  // 安全的复制到剪切板
   async function copyToClipboard(text) {
     try {
-      // 现代浏览器优先使用 Clipboard API
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
-        // 降级方案
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -76,7 +77,6 @@
     }
   }
 
-  // 创建可复用的 fetch 请求
   async function apiFetch(path) {
     const url = `${API}${path}`;
     const res = await fetch(url, {
@@ -87,10 +87,135 @@
     return res.json();
   }
 
-  /* ---------- Step 1: 获取用户歌单 ---------- */
-  async function fetchPlaylists(uid) {
-    showLoading('正在获取歌单列表...');
+  function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+  }
+
+  /* ---------- 入口：处理输入 ---------- */
+  async function handleSearch() {
+    const input = uidInput.value.trim();
+    if (!input) {
+      showError('请输入用户昵称或UID');
+      return;
+    }
+
     clearError();
+
+    // 判断是 UID（纯数字）还是昵称
+    if (/^\d+$/.test(input)) {
+      // 直接按 UID 查询
+      currentUid = input;
+      currentNickname = '';
+      await fetchPlaylistsByUid(currentUid);
+    } else {
+      // 按昵称搜索
+      await searchByNickname(input);
+    }
+  }
+
+  /* ---------- 按昵称搜索用户 ---------- */
+  async function searchByNickname(nickname) {
+    showLoading(`正在搜索用户"${nickname}"...`);
+
+    try {
+      const data = await apiFetch(`/user/get_userids?nicknames=${encodeURIComponent(nickname)}`);
+      if (data.code !== 200) {
+        throw new Error(data.msg || `API 返回错误码: ${data.code}`);
+      }
+
+      // 解析返回结果
+      // 返回格式: { code: 200, body: { code: 200, userIds: [...] } }
+      const userIds = data.body?.userIds || [];
+
+      if (userIds.length === 0) {
+        throw new Error(`未找到昵称为"${nickname}"的用户`);
+      }
+
+      if (userIds.length === 1) {
+        // 唯一用户，直接跳转
+        const user = userIds[0];
+        currentUid = String(user.userId);
+        currentNickname = user.nickname || nickname;
+        await fetchPlaylistsByUid(currentUid);
+      } else {
+        // 多个同名用户，展示选择界面
+        currentNickname = nickname;
+        showUserSelection(userIds);
+      }
+    } catch (err) {
+      showError(err.message || '搜索用户失败');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  /* ---------- 展示用户选择（重名时） ---------- */
+  function showUserSelection(users) {
+    userSelectContainer.innerHTML = '';
+    confirmUserBtn.disabled = true;
+
+    const title = document.querySelector('#userSelectStep h2');
+    title.textContent = `找到 ${users.length} 个"${escapeHtml(currentNickname)}"，请选择`;
+
+    users.forEach((user) => {
+      const div = document.createElement('div');
+      div.className = 'user-select-item';
+      div.dataset.uid = user.userId;
+      div.dataset.nickname = user.nickname || currentNickname;
+
+      const avatarUrl = user.avatarUrl || '';
+      const defaultAvatar = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22><rect width=%2248%22 height=%2248%22 fill=%22%23e8e8ed%22/><text x=%2224%22 y=%2232%22 text-anchor=%22middle%22 font-size=%2224%22>👤</text></svg>';
+
+      div.innerHTML = `
+        <input type="radio" name="userSelect" class="user-select-radio" />
+        <img class="user-select-avatar" src="${avatarUrl}" alt="${escapeHtml(user.nickname || '')}"
+             onerror="this.src='${defaultAvatar}'" />
+        <div class="user-select-info">
+          <div class="user-select-name">${escapeHtml(user.nickname || '匿名用户')}</div>
+          <div class="user-select-meta">UID: ${user.userId}</div>
+        </div>
+      `;
+
+      div.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        const radio = div.querySelector('.user-select-radio');
+        radio.checked = true;
+        document.querySelectorAll('.user-select-item').forEach((el) => el.classList.remove('selected'));
+        div.classList.add('selected');
+        confirmUserBtn.disabled = false;
+      });
+
+      const radio = div.querySelector('.user-select-radio');
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.user-select-item').forEach((el) => el.classList.remove('selected'));
+        div.classList.add('selected');
+        confirmUserBtn.disabled = false;
+      });
+
+      userSelectContainer.appendChild(div);
+    });
+
+    // 切换界面
+    step1.style.display = 'none';
+    userSelectStep.style.display = 'block';
+  }
+
+  /* ---------- 确认选择的用户 ---------- */
+  function confirmSelectedUser() {
+    const selected = document.querySelector('.user-select-item.selected');
+    if (!selected) return;
+
+    currentUid = selected.dataset.uid;
+    currentNickname = selected.dataset.nickname;
+    userSelectStep.style.display = 'none';
+    fetchPlaylistsByUid(currentUid);
+  }
+
+  /* ---------- 根据 UID 获取歌单 ---------- */
+  async function fetchPlaylistsByUid(uid) {
+    showLoading('正在获取歌单列表...');
 
     try {
       const data = await apiFetch(`/user/playlist?uid=${encodeURIComponent(uid)}`);
@@ -98,7 +223,6 @@
         throw new Error(data.msg || `API 返回错误码: ${data.code}`);
       }
 
-      // 过滤：用户自己创建 + 公开歌单
       const playlists = (data.playlist || []).filter((pl) => {
         return String(pl.userId) === String(uid) || 
                (pl.creator && String(pl.creator.userId) === String(uid));
@@ -108,9 +232,9 @@
         throw new Error('未找到该用户的公开歌单，请检查 UID 是否正确');
       }
 
-      currentUid = uid;
       rawPlaylists = playlists;
       renderPlaylists(playlists);
+      renderUserInfo(uid, playlists);
       step1.style.display = 'none';
       step2.style.display = 'block';
     } catch (err) {
@@ -120,7 +244,28 @@
     }
   }
 
-  /* ---------- Step 2: 渲染歌单列表 ---------- */
+  /* ---------- 显示用户信息栏 ---------- */
+  function renderUserInfo(uid, playlists) {
+    const firstPlaylist = playlists[0];
+    const creatorName = (firstPlaylist.creator && firstPlaylist.creator.nickname) 
+      || currentNickname || '未知';
+    const creatorAvatar = (firstPlaylist.creator && firstPlaylist.creator.avatarUrl) || '';
+    const playlistCount = playlists.length;
+    const totalTracks = playlists.reduce((sum, pl) => sum + (pl.trackCount || 0), 0);
+
+    const defaultAvatar = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><rect width=%2236%22 height=%2236%22 fill=%22%23e8e8ed%22/><text x=%2218%22 y=%2224%22 text-anchor=%22middle%22 font-size=%2218%22>👤</text></svg>';
+
+    selectedUserInfo.innerHTML = `
+      <img class="user-avatar" src="${creatorAvatar}" alt="${escapeHtml(creatorName)}"
+           onerror="this.src='${defaultAvatar}'" />
+      <div class="user-detail">
+        <div class="user-name">${escapeHtml(creatorName)}</div>
+        <div class="user-uid">UID: ${uid} · ${playlistCount} 个公开歌单 · ${totalTracks} 首歌曲</div>
+      </div>
+    `;
+  }
+
+  /* ---------- 渲染歌单列表 ---------- */
   function renderPlaylists(playlists) {
     playlistContainer.innerHTML = '';
     generateBtn.disabled = true;
@@ -132,17 +277,15 @@
 
       const cover = pl.coverImgUrl || '';
       const trackCount = pl.trackCount || 0;
-      const creatorName = (pl.creator && pl.creator.nickname) || '未知';
       const name = pl.name || '未命名歌单';
 
       div.innerHTML = `
         <input type="checkbox" class="pl-checkbox" />
-        <img class="playlist-cover" src="${cover}?param=96y96" alt="${name}" 
+        <img class="playlist-cover" src="${cover}?param=96y96" alt="${escapeHtml(name)}" 
              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22><rect width=%2248%22 height=%2248%22 fill=%22%23e8e8ed%22/><text x=%2224%22 y=%2232%22 text-anchor=%22middle%22 font-size=%2224%22>🎵</text></svg>'" />
         <div class="playlist-info">
           <div class="playlist-name">${escapeHtml(name)}</div>
           <div class="playlist-meta">${trackCount} 首歌曲</div>
-          <div class="playlist-creator">by ${escapeHtml(creatorName)}</div>
         </div>
       `;
 
@@ -164,12 +307,6 @@
     });
   }
 
-  function escapeHtml(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
-  }
-
   function updateGenerateBtn() {
     const checked = document.querySelectorAll('.pl-checkbox:checked');
     generateBtn.disabled = checked.length === 0;
@@ -178,7 +315,6 @@
       : '生成提示词';
   }
 
-  /* ---------- Step 2: 全选/取消 ---------- */
   function toggleAllSelect(checked) {
     document.querySelectorAll('.pl-checkbox').forEach((cb) => {
       cb.checked = checked;
@@ -187,12 +323,11 @@
     updateGenerateBtn();
   }
 
-  /* ---------- Step 2 → Step 3: 生成提示词 ---------- */
+  /* ---------- 生成提示词 ---------- */
   async function generatePrompts() {
     const checked = document.querySelectorAll('.pl-checkbox:checked');
     if (checked.length === 0) return;
 
-    // 收集选中的歌单ID
     const playlistIds = [];
     checked.forEach((cb) => {
       const item = cb.closest('.playlist-item');
@@ -202,13 +337,11 @@
     showLoading('正在加载歌单歌曲...');
 
     try {
-      // 并行获取所有选中歌单的歌曲
       const allSongPromises = playlistIds.map((id) =>
         fetchPlaylistTracks(id)
       );
       const songArrays = await Promise.all(allSongPromises);
 
-      // 合并去重
       const seen = new Set();
       allSongs = [];
       songArrays.forEach((songs) => {
@@ -227,7 +360,6 @@
         throw new Error('所选歌单中无有效歌曲');
       }
 
-      // 生成提示词片段
       const chunks = buildChunks(allSongs);
       renderChunks(chunks);
 
@@ -241,14 +373,8 @@
     }
   }
 
-  /* ---------- 获取单个歌单的歌曲 ---------- */
   async function fetchPlaylistTracks(playlistId) {
     const data = await apiFetch(`/playlist/track/all?id=${encodeURIComponent(playlistId)}`);
-    if (data.code !== 200 && data.code !== undefined && data.code !== 202) {
-      // playlist/track/all 可能返回 { songs: [...] } 格式
-      // 有些版本返回 { code: 200, songs: [...] } 或 { code: 202, songs: [...] }
-    }
-
     const songs = data.songs || [];
     return songs.map((s) => ({
       id: s.id,
@@ -257,26 +383,21 @@
     }));
   }
 
-  /* ---------- 构建提示词片段 ---------- */
   function buildChunks(songs) {
     const lines = songs.map(formatSong);
     const total = lines.length;
 
     if (total <= MAX_SONGS) {
-      // 无需拆分
       const prompt = T.finalHead(total) + lines.join('\n') + T.tail;
       return [{ songs: prompt, isFinal: true, index: 1, total: 1 }];
     }
 
-    // 需要拆分
     const chunks = [];
-    const songsPerChunk = MAX_SONGS;
-
-    for (let i = 0; i < total; i += songsPerChunk) {
-      const chunkLines = lines.slice(i, i + songsPerChunk);
-      const isLast = (i + songsPerChunk >= total);
-      const chunkIndex = Math.floor(i / songsPerChunk) + 1;
-      const totalChunks = Math.ceil(total / songsPerChunk);
+    for (let i = 0; i < total; i += MAX_SONGS) {
+      const chunkLines = lines.slice(i, i + MAX_SONGS);
+      const isLast = (i + MAX_SONGS >= total);
+      const chunkIndex = Math.floor(i / MAX_SONGS) + 1;
+      const totalChunks = Math.ceil(total / MAX_SONGS);
 
       let prompt;
       if (isLast) {
@@ -296,11 +417,9 @@
     return chunks;
   }
 
-  /* ---------- 渲染提示词片段（倒序） ---------- */
   function renderChunks(chunks) {
     resultContainer.innerHTML = '';
 
-    // 倒序显示
     const reversed = [...chunks].reverse();
 
     reversed.forEach((chunk, idx) => {
@@ -311,7 +430,6 @@
         ? `完整提示词（共 ${chunk.total} 个片段，此为最后一个）`
         : `片段 ${chunk.index}/${chunk.total} - 注意顺序`;
 
-      // 复制顺序提示
       const orderHint = reversed.length > 1
         ? `⬆ 请按从上到下的顺序依次复制粘贴到 AI`
         : '';
@@ -327,7 +445,6 @@
 
       resultContainer.appendChild(card);
 
-      // 绑定复制按钮
       const copyBtn = card.querySelector('.copy-btn');
       copyBtn.addEventListener('click', async () => {
         const text = decodeURIComponent(copyBtn.dataset.text);
@@ -346,7 +463,7 @@
     });
   }
 
-  /* ---------- 导出为 TXT ---------- */
+  /* ---------- 导出 TXT ---------- */
   function exportTxt() {
     if (allSongs.length === 0) return;
 
@@ -364,28 +481,22 @@
   }
 
   /* ---------- 事件绑定 ---------- */
-  fetchBtn.addEventListener('click', () => {
-    const uid = uidInput.value.trim();
-    if (!uid) {
-      showError('请输入用户 UID');
-      return;
-    }
-    if (!/^\d+$/.test(uid)) {
-      showError('UID 必须为数字');
-      return;
-    }
-    fetchPlaylists(uid);
-  });
+  fetchBtn.addEventListener('click', handleSearch);
 
   uidInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') fetchBtn.click();
   });
 
+  confirmUserBtn.addEventListener('click', confirmSelectedUser);
+
+  backToStep1Btn.addEventListener('click', () => {
+    userSelectStep.style.display = 'none';
+    step1.style.display = 'block';
+  });
+
   selectAllBtn.addEventListener('click', () => toggleAllSelect(true));
   deselectAllBtn.addEventListener('click', () => toggleAllSelect(false));
-
   generateBtn.addEventListener('click', generatePrompts);
-
   exportTxtBtn.addEventListener('click', exportTxt);
 
   backBtn.addEventListener('click', () => {
@@ -393,8 +504,9 @@
     step2.style.display = 'block';
   });
 
-  // 回到 Step1 的逻辑：在所有 step 外部加一个返回按钮（通过双击标题）
+  // 双击标题返回首页
   document.querySelector('header h1').addEventListener('dblclick', () => {
+    userSelectStep.style.display = 'none';
     step2.style.display = 'none';
     step3.style.display = 'none';
     step1.style.display = 'block';
