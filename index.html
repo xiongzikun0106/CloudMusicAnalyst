@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>歌单品味锐评助手</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎵 歌单品味锐评助手</h1>
+      <p class="subtitle">输入网易云用户ID，生成AI锐评提示词</p>
+    </header>
+
+    <!-- Step 1: 输入用户ID -->
+    <section class="step" id="step1">
+      <h2>Step 1 · 输入用户ID</h2>
+      <div class="input-group">
+        <input type="text" id="uidInput" placeholder="请输入网易云用户UID" />
+        <button id="fetchPlaylistsBtn" class="btn primary">获取歌单</button>
+      </div>
+      <div id="step1Error" class="error-msg"></div>
+    </section>
+
+    <!-- Step 2: 选择歌单 -->
+    <section class="step" id="step2" style="display:none">
+      <h2>Step 2 · 选择歌单</h2>
+      <div id="playlistContainer"></div>
+      <div class="actions">
+        <button id="generateBtn" class="btn primary" disabled>生成提示词</button>
+        <button id="selectAllBtn" class="btn secondary">全选</button>
+        <button id="deselectAllBtn" class="btn secondary">取消全选</button>
+      </div>
+    </section>
+
+    <!-- Step 3: 结果展示 -->
+    <section class="step" id="step3" style="display:none">
+      <h2>Step 3 · 提示词结果</h2>
+      <div id="resultActions" class="actions">
+        <button id="exportTxtBtn" class="btn primary">📥 导出为TXT</button>
+        <button id="backBtn" class="btn secondary">← 返回</button>
+        <span id="songCount" class="count-badge"></span>
+      </div>
+      <div id="resultContainer"></div>
+    </section>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      <span id="loadingText">加载中...</span>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
