@@ -23,5 +23,8 @@ Thumbs.db
 # 日志
 *.log
 
+# 部署文档（敏感信息含 API Key）
+DEPLOY.md
+
 # NeteaseCloudMusicApi 备份目录（已独立维护）
 NeteaseCloudMusicApiBackup/

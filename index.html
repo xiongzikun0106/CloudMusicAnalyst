@@ -8,9 +8,14 @@
 </head>
 <body>
   <div class="container">
+    <!-- 深色模式切换 -->
+    <div class="theme-toggle">
+      <button id="themeToggleBtn" class="btn icon-btn" title="切换深色模式">🌙</button>
+    </div>
+
     <header>
       <h1>🎵 歌单品味锐评助手</h1>
-      <p class="subtitle">输入网易云用户昵称或UID，生成AI锐评提示词</p>
+      <p class="subtitle">输入网易云用户昵称或UID，一秒看穿他的音乐品味</p>
     </header>
 
     <!-- Step 1: 输入用户昵称或UID -->
@@ -34,27 +39,84 @@
       </div>
     </section>
 
-    <!-- Step 2: 选择歌单 -->
+    <!-- Step 2: 选择歌单（单选） -->
     <section class="step" id="step2" style="display:none">
-      <h2>Step 2 · 选择歌单</h2>
+      <h2>Step 2 · 选择一个歌单</h2>
       <div id="selectedUserInfo" class="user-info-bar"></div>
       <div id="playlistContainer"></div>
       <div class="actions">
         <button id="generateBtn" class="btn primary" disabled>生成提示词</button>
-        <button id="selectAllBtn" class="btn secondary">全选</button>
-        <button id="deselectAllBtn" class="btn secondary">取消全选</button>
       </div>
     </section>
 
-    <!-- Step 3: 结果展示 -->
+    <!-- Step 3: 选择操作方式 -->
     <section class="step" id="step3" style="display:none">
-      <h2>Step 3 · 提示词结果</h2>
-      <div id="resultActions" class="actions">
-        <button id="exportTxtBtn" class="btn primary">📥 导出为TXT</button>
-        <button id="backBtn" class="btn secondary">← 返回</button>
-        <span id="songCount" class="count-badge"></span>
+      <h2>选择操作方式</h2>
+      <div id="step3Meta" class="result-meta" style="margin-bottom:16px;">
+        <span id="step3SongCount" class="count-badge"></span>
+        <span id="step3PlaylistName" class="playlist-name-display"></span>
       </div>
-      <div id="resultContainer"></div>
+      <div class="action-cards">
+        <div id="chooseAiBtn" class="action-card action-card-ai">
+          <div class="action-card-icon">🤖</div>
+          <div class="action-card-title">AI 分析</div>
+          <div class="action-card-desc">将提示词发送给 DeepSeek，自动生成毒舌锐评</div>
+        </div>
+        <div id="chooseExportBtn" class="action-card action-card-export">
+          <div class="action-card-icon">📝</div>
+          <div class="action-card-title">导出提示词</div>
+          <div class="action-card-desc">查看、复制或下载完整提示词文本</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="backFromStep3Btn" class="btn secondary">← 返回选择歌单</button>
+      </div>
+    </section>
+
+    <!-- Step 4a: AI 分析页 -->
+    <section class="step" id="step4a" style="display:none">
+      <div class="step-header">
+        <h2>🤖 AI 锐评</h2>
+        <button id="backFromAiBtn" class="btn secondary btn-sm">← 返回</button>
+      </div>
+      <div class="ai-prompt-summary">
+        <span class="count-badge" id="aiSongCount"></span>
+        <span id="aiPlaylistName"></span>
+        <button id="aiGoBtn" class="btn ai-btn" style="margin-left:auto;">🚀 开始分析</button>
+      </div>
+      <div id="aiResultContainer" style="display:none;">
+        <div class="ai-review-header">
+          <span>💬 AI 锐评结果</span>
+          <button id="copyReviewBtn" class="btn icon-btn small-btn">📋 复制</button>
+        </div>
+        <div id="aiReviewContent" class="ai-review-content markdown-body">
+          <div class="ai-loading">
+            <div class="spinner small"></div>
+            <span>AI 正在锐评中，请稍候...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 4b: 导出提示词页 -->
+    <section class="step" id="step4b" style="display:none">
+      <div class="step-header">
+        <h2>📝 导出提示词</h2>
+        <button id="backFromExportBtn" class="btn secondary btn-sm">← 返回</button>
+      </div>
+      <div class="actions" style="margin-top:0;margin-bottom:16px;">
+        <span id="exportSongCount" class="count-badge"></span>
+        <span id="exportPlaylistName" class="playlist-name-display"></span>
+        <button id="copyPromptBtn" class="btn primary" style="margin-left:auto;">📋 复制</button>
+        <button id="exportTxtBtn" class="btn secondary">📥 下载 TXT</button>
+      </div>
+      <div id="copyHint" class="hint-text" style="margin-bottom:12px;"></div>
+      <div class="prompt-preview">
+        <div class="preview-header">
+          <span>提示词预览（只读）</span>
+        </div>
+        <pre id="promptText" class="preview-text"></pre>
+      </div>
     </section>
 
     <!-- Loading -->
@@ -64,6 +126,13 @@
     </div>
   </div>
 
+  <footer class="footer">
+    <span>歌单品味锐评助手 ·</span>
+    <a href="https://github.com/xiongzikun0106/CloudMusicAnalyst" target="_blank">GitHub</a>
+  </footer>
+
+  <!-- marked.js：Markdown 渲染 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
