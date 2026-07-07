@@ -6,36 +6,31 @@
 //   API_BASE_URL: 'http://localhost:3000'
 //   WORKER_API_BASE: 'http://localhost:3000'
 //
-// 生产环境：
-//   API_BASE_URL: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev'
-//   WORKER_API_BASE: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev'
+// 生产环境（使用自定义域名）：
+//   API_BASE_URL: 'https://api.cloudmusicanalyst.net'
+//   WORKER_API_BASE: 'https://api.cloudmusicanalyst.net'
 const CONFIG = {
-  // Cloudflare Worker 地址（会自动转发到 Vercel 上的网易云 API）
-  API_BASE_URL: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev',
+  // Cloudflare Worker 地址（通过自定义域名访问）
+  API_BASE_URL: 'https://api.cloudmusicanalyst.net',
 
   // 同上（Worker 同时处理 API 代理和 AI 锐评）
-  WORKER_API_BASE: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev',
+  WORKER_API_BASE: 'https://api.cloudmusicanalyst.net',
 
   // 单个提示词片段的最大歌曲数（超过则禁用复制，仅提供下载）
   MAX_SONGS_PER_CHUNK: 100,
 
   // 提示词模板
   PROMPT_TEMPLATES: {
-    // 非最后片段的提示头（带警告）
     partialHead: (chunkIndex, totalChunks) =>
       `【歌单片段 ${chunkIndex}/${totalChunks} - 注意！这不是完整的歌单，先不要回答！】\n\n以下是用户歌单的部分歌曲，请等待所有片段收集完毕后再进行评价。\n\n`,
-
-    // 最后片段的提示头
     finalHead: (totalSongs) =>
       `【请锐评以下歌单的品味】\n\n以下是我歌单中的 ${totalSongs} 首歌曲，请从音乐品味、风格偏好、年代分布等角度进行毒舌但有趣的评价：\n\n`,
-
-    // 片尾
     tail: '\n\n---\n请根据以上歌曲进行评价。',
   },
 
   // LLM 配置（通过 Cloudflare Worker 中转）
   LLM_CONFIG: {
-    ENABLED: true, // 启用 AI 锐评按钮
+    ENABLED: true,
     API_ENDPOINT: '/api/ai-review',
     MODEL: 'deepseek-v4-flash',
     DISABLE_THINKING: true,
