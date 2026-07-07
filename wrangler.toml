@@ -1,4 +1,4 @@
-name = "cloud-music-analyst-api"
+name = "cloud-music-analyst"
 main = "api/index.js"
 compatibility_date = "2024-12-01"
 
