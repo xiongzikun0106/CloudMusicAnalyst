@@ -1,0 +1,9 @@
+{
+  "name": "cloud-music-analyst",
+  "version": "1.0.0",
+  "description": "歌单品味锐评助手 - 纯静态前端",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build step needed'"
+  }
+}
