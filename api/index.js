@@ -7,14 +7,17 @@
  *   /get/userids?nicknames=xxx → 代理到 NeteaseCloudMusicApi
  *   /api/ai-review             → 调用 DeepSeek API（POST FormData）
  * 
+ * NeteaseCloudMusicApi 备份仓库（部署时 fork 到 Render）：
+ *   https://github.com/nooblong/NeteaseCloudMusicApiBackup
+ * 
  * 部署：
  *   1. npm install -g wrangler
  *   2. wrangler deploy
  *   3. 在 Cloudflare Dashboard 设置 DEEPSEEK_API_KEY 环境变量
  */
 
-// NeteaseCloudMusicApi 部署地址（部署时改为你的实际地址）
-const NCM_API_BASE = 'http://localhost:3000';
+// NeteaseCloudMusicApi 部署地址（本地测试用 localhost，生产改为 Render 地址）
+const NCM_API_BASE = 'https://netease-cloud-music-api-backup-94lcuvn5c.vercel.app';
 
 // 需要代理的 NCM API 路径列表
 const NCM_PROXY_PATHS = ['/user/playlist', '/playlist/track/all', '/get/userids'];
