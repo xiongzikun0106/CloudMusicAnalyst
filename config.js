@@ -1,21 +1,20 @@
 // 部署时修改这里：
-//   API_BASE_URL — NeteaseCloudMusicApi 的地址
-//   WORKER_API_BASE — Cloudflare Worker 的地址（用于 AI 锐评）
+//   API_BASE_URL — Cloudflare Worker 地址（前端通过 Worker 访问一切）
+//   WORKER_API_BASE — 同上
 //
 // 本地开发：
 //   API_BASE_URL: 'http://localhost:3000'
-//   WORKER_API_BASE: 'http://localhost:3000'（如果API能透传AI锐评则填，否则留空禁用）
+//   WORKER_API_BASE: 'http://localhost:3000'
 //
-// 生产环境（Cloudflare）：
-//   API_BASE_URL: 'https://your-worker.xxx.workers.dev'
-//   WORKER_API_BASE: 'https://your-worker.xxx.workers.dev'
+// 生产环境：
+//   API_BASE_URL: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev'
+//   WORKER_API_BASE: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev'
 const CONFIG = {
-  // NeteaseCloudMusicApi 的 base URL
-  API_BASE_URL: 'http://localhost:3000',
+  // Cloudflare Worker 地址（会自动转发到 Vercel 上的网易云 API）
+  API_BASE_URL: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev',
 
-  // Cloudflare Worker 的 base URL（用于 AI 锐评、文件上传等）
-  // 如果未部署 Worker，设为空字符串 '' 可禁用 AI 锐评
-  WORKER_API_BASE: '',
+  // 同上（Worker 同时处理 API 代理和 AI 锐评）
+  WORKER_API_BASE: 'https://cloud-music-analyst-api.xiongzikun0106.workers.dev',
 
   // 单个提示词片段的最大歌曲数（超过则禁用复制，仅提供下载）
   MAX_SONGS_PER_CHUNK: 100,
@@ -36,10 +35,9 @@ const CONFIG = {
 
   // LLM 配置（通过 Cloudflare Worker 中转）
   LLM_CONFIG: {
-    ENABLED: false, // 设为 true 启用 AI 锐评按钮
-    // Cloudflare Worker 上的 AI 评论文口
+    ENABLED: true, // 启用 AI 锐评按钮
     API_ENDPOINT: '/api/ai-review',
-    MODEL: 'deepseek-chat',
+    MODEL: 'deepseek-v4-flash',
     DISABLE_THINKING: true,
   },
 }
