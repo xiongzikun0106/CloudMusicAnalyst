@@ -28,3 +28,6 @@ DEPLOY.md
 
 # NeteaseCloudMusicApi 备份目录（已独立维护）
 NeteaseCloudMusicApiBackup/
+
+# Wrangler 缓存
+.wrangler/
