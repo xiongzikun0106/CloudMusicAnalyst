@@ -1,0 +1,43 @@
+services:
+  ncm:
+    build:
+      context: .
+      dockerfile: Dockerfile.ncm
+    container_name: cloudmusic-ncm
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: cloudmusic-backend
+    restart: always
+    depends_on:
+      - ncm
+    env_file:
+      - .env
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudmusic-tunnel
+    restart: always
+    command: tunnel --no-autoupdate run
+    env_file:
+      - .env
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+    networks:
+      - default
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudmusic-frontend
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend

@@ -1,0 +1,8 @@
+FROM node:24-alpine
+WORKDIR /app
+RUN apk add --no-cache git && \
+    git clone --depth 1 https://github.com/nooblong/NeteaseCloudMusicApiBackup.git /app && \
+    npm install && \
+    apk del git
+EXPOSE 3000
+CMD ["node", "app.js"]
