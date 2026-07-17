@@ -10,11 +10,11 @@
 //   API_BASE_URL: 'https://api.cloudmusicanalyst.net'
 //   WORKER_API_BASE: 'https://api.cloudmusicanalyst.net'
 const CONFIG = {
-  // Cloudflare Worker 地址（通过自定义域名访问）
-  API_BASE_URL: 'https://api.cloudmusicanalyst.net',
+  // VPS 同源部署（nginx 反向代理到后端）
+  API_BASE_URL: '',
 
-  // 同上（Worker 同时处理 API 代理和 AI 锐评）
-  WORKER_API_BASE: 'https://api.cloudmusicanalyst.net',
+  // 同上
+  WORKER_API_BASE: '',
 
   // 单个提示词片段的最大歌曲数（超过则禁用复制，仅提供下载）
   MAX_SONGS_PER_CHUNK: 100,

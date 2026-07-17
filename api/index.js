@@ -84,7 +84,7 @@ async function handleNcmProxy(request, path, query, corsHeaders) {
  */
 async function handleAiReview(request, env, corsHeaders) {
   // 优先从环境变量读取 API Key，没有则回退到硬编码
-  const API_KEY = env.DEEPSEEK_API_KEY || 'sk-74555a819a454e8ab32079241d582fc6';
+  const API_KEY = env.DEEPSEEK_API_KEY;
 
   const formData = await request.formData();
   const file = formData.get('file');
