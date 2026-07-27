@@ -43,6 +43,8 @@
   const loading = $('loading');
   const loadingText = $('loadingText');
   const themeToggleBtn = $('themeToggleBtn');
+  const fullReviewBtn = $('fullReviewBtn');
+  const fullReviewStatus = $('fullReviewStatus');
 
   const API = CONFIG.API_BASE_URL;
   const MAX_SONGS = CONFIG.MAX_SONGS_PER_CHUNK;
@@ -303,7 +305,7 @@
       if (songs.length === 0) throw new Error('该歌单无有效歌曲');
       allSongs = songs;
       totalSongCount = songs.length;
-      currentFullPrompt = T.finalHead(totalSongCount) + songs.map(formatSong).join('\n') + T.tail;
+      currentFullPrompt = T.finalHead(currentPlaylistName, totalSongCount) + JSON.stringify(songs) + T.tail;
 
       // 进入 Step 3：选择操作方式
       step3SongCount.textContent = `共 ${totalSongCount} 首`;
@@ -439,6 +441,31 @@
     showError('');
   }
 
+  /* ---------- 全员锐评 ---------- */
+  async function handleFullReview() {
+    if (!currentUid) return;
+    showLoading('正在拉取歌单列表和收藏专辑...');
+    fullReviewStatus.style.display = 'none';
+    try {
+      const url = `${API}/user/full-review?uid=${encodeURIComponent(currentUid)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      totalSongCount = 0;
+      currentPlaylistName = `全员锐评（${data.playlistCount} 个歌单 + ${data.albumCount} 张专辑）`;
+      currentFullPrompt = data.prompt;
+
+      step3SongCount.textContent = `🎯 全员锐评`;
+      step3PlaylistName.textContent = currentPlaylistName;
+      showOnly(step3);
+    } catch (err) {
+      fullReviewStatus.style.display = 'block';
+      fullReviewStatus.textContent = '❌ 获取失败：' + (err.message || '未知错误');
+    } finally { hideLoading(); }
+  }
+
   /* ---------- 事件绑定 ---------- */
   fetchBtn.addEventListener('click', handleSearch);
   uidInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchBtn.click(); });
@@ -460,6 +487,9 @@
   copyPromptBtn.addEventListener('click', handleCopyPrompt);
   exportTxtBtn.addEventListener('click', exportTxt);
   backFromExportBtn.addEventListener('click', backToStep3);
+
+  // 全员锐评
+  fullReviewBtn.addEventListener('click', handleFullReview);
 
   // 双击标题回首页
   document.querySelector('header h1').addEventListener('dblclick', goHome);
