@@ -45,3 +45,5 @@ DEPLOY.md
 # NeteaseCloudMusicApi 备份目录（已独立维护，构建时 clone）
 NeteaseCloudMusicApiBackup/
 servers/
+# 历史重写前的 .git 备份（含已吊销密钥，勿再提交）
+.git-bak-*/
