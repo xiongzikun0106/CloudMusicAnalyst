@@ -1,0 +1,6 @@
+# 强制 shell 脚本与 Dockerfile 使用 LF 换行（Windows git archive 默认会转成 CRLF，
+# 会破坏容器内 start.sh 的 `set -e` 等命令，导致容器启动失败）
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+*.py text eol=lf
