@@ -3,142 +3,295 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>歌单品味锐评助手</title>
+  <title>云音乐 · 战斗 BGM 属性卡 & 歌单锐评</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
+
     <!-- 深色模式切换 -->
     <div class="theme-toggle">
       <button id="themeToggleBtn" class="btn icon-btn" title="切换深色模式">🌙</button>
     </div>
 
     <header>
-      <h1>🎵 歌单品味锐评助手</h1>
-      <p class="subtitle">输入网易云用户昵称或UID，一秒看穿他的音乐品味</p>
+      <h1>🎵 云音乐趣味工坊</h1>
+      <p class="subtitle">把你的 BGM 变成战斗属性卡，顺便看看歌单的品味</p>
     </header>
 
-    <!-- Step 1: 输入用户昵称或UID -->
-    <section class="step" id="step1">
-      <h2>Step 1 · 输入用户昵称或UID</h2>
-      <div class="input-group">
-        <input type="text" id="uidInput" placeholder="支持用户昵称或UID（数字）" />
-        <button id="fetchPlaylistsBtn" class="btn primary">查询</button>
-      </div>
-      <div id="step1Hint" class="hint-text">💡 输入昵称会自动搜索匹配的用户；输入数字UID直接查询</div>
-      <div id="step1Error" class="error-msg"></div>
-    </section>
+    <!-- Tab 切换 -->
+    <div class="tabs" role="tablist">
+      <button id="tabBattle" class="tab active" role="tab" aria-selected="true">⚔️ 战斗 BGM 属性卡</button>
+      <button id="tabReview" class="tab" role="tab" aria-selected="false">🎯 歌单品味锐评</button>
+    </div>
 
-    <!-- 用户选择（重名时展示） -->
-    <section class="step" id="userSelectStep" style="display:none">
-      <h2>找到多个用户，请选择</h2>
-      <div id="userSelectContainer"></div>
-      <div class="actions">
-        <button id="confirmUserBtn" class="btn primary" disabled>确认选择</button>
-        <button id="backToStep1Btn" class="btn secondary">← 返回</button>
-      </div>
-    </section>
+    <!-- ==================== Tab 1: 战斗 BGM 属性卡 ==================== -->
+    <div id="panelBattle" class="tab-panel active">
 
-    <!-- Step 2: 选择歌单（单选） -->
-    <section class="step" id="step2" style="display:none">
-      <h2>Step 2 · 选择一个歌单</h2>
-      <div id="selectedUserInfo" class="user-info-bar"></div>
-      <div id="playlistContainer"></div>
-      <div class="actions">
-        <button id="generateBtn" class="btn primary" disabled>生成提示词</button>
-      </div>
-      <div class="full-review-section">
-        <div class="full-review-divider"><span>或者</span></div>
-        <button id="fullReviewBtn" class="btn full-review-btn">🎯 一键全员锐评（所有歌单）</button>
-        <div id="fullReviewStatus" class="hint-text" style="display:none;"></div>
-      </div>
-    </section>
-
-    <!-- Step 3: 选择操作方式 -->
-    <section class="step" id="step3" style="display:none">
-      <h2>选择操作方式</h2>
-      <div id="step3Meta" class="result-meta" style="margin-bottom:16px;">
-        <span id="step3SongCount" class="count-badge"></span>
-        <span id="step3PlaylistName" class="playlist-name-display"></span>
-      </div>
-      <div class="action-cards">
-        <div id="chooseAiBtn" class="action-card action-card-ai">
-          <div class="action-card-icon">🤖</div>
-          <div class="action-card-title">AI 分析</div>
-          <div class="action-card-desc">将提示词发送给 DeepSeek，自动生成毒舌锐评</div>
+      <!-- 输入区 -->
+      <section class="card">
+        <h2>输入歌曲</h2>
+        <p class="desc">支持歌名搜索、网易云歌曲链接、纯歌曲 ID</p>
+        <div class="input-group">
+          <input type="text" id="battleInput" placeholder="例如：孤勇者 / https://music.163.com/song?id=xxxx / 纯数字 ID" />
+          <button id="battleGoBtn" class="btn primary">🔍 生成属性卡</button>
         </div>
-        <div id="chooseExportBtn" class="action-card action-card-export">
-          <div class="action-card-icon">📝</div>
-          <div class="action-card-title">导出提示词</div>
-          <div class="action-card-desc">查看、复制或下载完整提示词文本</div>
+        <div id="battleError" class="error-msg"></div>
+        <div id="battleHint" class="hint-text" style="margin-top:8px;">🎵 时长小于 1 分钟的歌不允许参战</div>
+      </section>
+      <!-- 候选歌曲选择（歌名搜索命中多个版本时让用户确认） -->
+      <div id="battleCandidates" class="card" style="display:none;margin-top:12px;">
+        <h2>🎯 请确认歌曲</h2>
+        <p class="desc">搜索到多个匹配结果，请选择要生成属性卡的那一首：</p>
+        <div id="battleCandidatesList" class="board-list"></div>
+        <div class="actions" style="margin-top:12px;">
+          <button id="battleCandidatesCancel" class="btn secondary">← 取消</button>
         </div>
       </div>
-      <div class="actions">
-        <button id="backFromStep3Btn" class="btn secondary">← 返回选择歌单</button>
-      </div>
-    </section>
 
-    <!-- Step 4a: AI 分析页 -->
-    <section class="step" id="step4a" style="display:none">
-      <div class="step-header">
-        <h2>🤖 AI 锐评</h2>
-        <button id="backFromAiBtn" class="btn secondary btn-sm">← 返回</button>
-      </div>
-      <div class="ai-prompt-summary">
-        <span class="count-badge" id="aiSongCount"></span>
-        <span id="aiPlaylistName"></span>
-        <button id="aiGoBtn" class="btn ai-btn" style="margin-left:auto;">🚀 开始分析</button>
-      </div>
-      <div id="aiResultContainer" style="display:none;">
-        <div class="ai-review-header">
-          <span>💬 AI 锐评结果</span>
-          <button id="copyReviewBtn" class="btn icon-btn small-btn">📋 复制</button>
+
+
+      <!-- 结果区 -->
+      <div id="battleResult" style="display:none;">
+        <!-- 属性卡 -->
+        <section class="card battle-card">
+          <div class="battle-card-head">
+            <div class="element-icon" id="elementIcon">🔥</div>
+            <div class="battle-song-info">
+              <div class="battle-title" id="battleTitle">歌名</div>
+              <div class="battle-artist" id="battleArtist">歌手</div>
+              <div class="battle-tags" id="battleTags"></div>
+            </div>
+            <div class="battle-cooldown">
+              <div class="cd-label">冷却</div>
+              <div class="cd-value" id="cooldownText">0分00秒</div>
+              <div class="cd-countdown" id="cdCountdown"></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- 六维属性条 -->
+          <div class="stats">
+            <div class="stat-row">
+              <span class="stat-label">⚔️ 攻速</span>
+              <div class="stat-bar"><div class="stat-fill" id="statAttack" style="width:0%"></div></div>
+              <span class="stat-value" id="statAttackVal">0.0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">💥 爆发力</span>
+              <div class="stat-bar"><div class="stat-fill stat-fire" id="statBurst" style="width:0%"></div></div>
+              <span class="stat-value" id="statBurstVal">0.0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">⏳ 蓄力</span>
+              <div class="stat-bar"><div class="stat-fill stat-charge" id="statCharge" style="width:0%"></div></div>
+              <span class="stat-value" id="statChargeVal">0s</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">🎼 BPM</span>
+              <div class="stat-bar"><div class="stat-fill stat-bpm" id="statBpm" style="width:0%"></div></div>
+              <span class="stat-value" id="statBpmVal">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">🔁 副歌占比</span>
+              <div class="stat-bar"><div class="stat-fill stat-chorus" id="statChorus" style="width:0%"></div></div>
+              <span class="stat-value" id="statChorusVal">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">📐 段落数</span>
+              <div class="stat-bar"><div class="stat-fill stat-section" id="statSection" style="width:0%"></div></div>
+              <span class="stat-value" id="statSectionVal">--</span>
+            </div>
+          </div>
+
+          <!-- 能量波形图 -->
+          <div class="wave-container">
+            <div class="wave-header"><span>⚡ 能量波形（试听片段 RMS）</span><span id="waveBadge" class="wave-badge">音频分析</span></div>
+            <svg id="waveformSvg" viewBox="0 0 600 80" preserveAspectRatio="none" style="width:100%;height:80px;"></svg>
+            <div id="waveEmpty" class="wave-empty" style="display:none;">🎵 无试听音频，已降级为歌词结构分析</div>
+          </div>
+
+          <!-- 技能描述 -->
+          <div class="skill-box">
+            <div class="skill-name" id="skillName">技能名</div>
+            <div class="skill-desc" id="skillDesc">技能描述</div>
+            <div class="element-evidence" id="elementEvidence">系别依据</div>
+          </div>
+
+          <!-- 战力锐评（LLM 生成） -->
+          <div class="review-box">
+            <div class="review-header">
+              <span>🎤 本场战报 · 锐评</span>
+              <div class="review-actions">
+                <button id="battleReviewRegenBtn" class="btn secondary btn-sm">🔄 再评一次</button>
+                <button id="battleReviewCopyBtn" class="btn icon-btn small-btn">📋 复制</button>
+              </div>
+            </div>
+            <div id="battleReviewContent" class="review-content">（锐评生成中...）</div>
+            <div class="review-note">✨ 锐评由 DeepSeek 基于属性/歌词/排面生成，仅供娱乐</div>
+          </div>
+        </section>
+
+        <!-- 排面区块 -->
+        <section class="card rank-card" id="rankCard">
+          <h2>🏆 排面（当前样本 <span id="rankSampleCount">1</span> 份）</h2>
+          <div id="rankNote" class="rank-note"></div>
+          <div id="rankOverall" class="rank-overall">
+            <div class="rank-overall-score" id="rankOverallScore">0.00</div>
+            <div class="rank-overall-meta">
+              <div><strong>综合战力</strong></div>
+              <div id="rankOverallRank">第 1 名 · 百分位 100%</div>
+            </div>
+          </div>
+          <div id="rankDims" class="rank-dims"></div>
+          <div class="element-dist" id="elementDistribution"></div>
+        </section>
+
+        <!-- 操作按钮 -->
+        <div class="actions">
+          <button id="battleExportBtn" class="btn secondary">📥 下载属性卡 JSON</button>
         </div>
-        <div id="aiReviewContent" class="ai-review-content markdown-body">
-          <div class="ai-loading">
-            <div class="spinner small"></div>
-            <span>AI 正在锐评中，请稍候...</span>
+      </div>
+
+      <!-- 排行榜（可选查看） -->
+      <section class="card" id="rankBoard" style="margin-top:20px;">
+        <h2>📊 历史排行榜</h2>
+        <div class="board-controls">
+          <select id="boardDimension" class="select">
+            <option value="overall">综合战力</option>
+            <option value="attack_speed">攻速</option>
+            <option value="burst">爆发力</option>
+            <option value="bpm">BPM</option>
+            <option value="chorus_ratio">副歌占比</option>
+            <option value="cooldown_seconds">冷却（越短越好）</option>
+          </select>
+          <button id="boardRefreshBtn" class="btn secondary btn-sm">刷新</button>
+        </div>
+        <div id="boardList" class="board-list"><div class="hint-text">加载中...</div></div>
+        <div id="boardStats" class="hint-text" style="margin-top:8px;"></div>
+      </section>
+    </div>
+
+    <!-- ==================== Tab 2: 歌单品味锐评 ==================== -->
+    <div id="panelReview" class="tab-panel">
+
+      <!-- Step 1: 输入用户昵称或UID -->
+      <section class="card step" id="reviewStep1">
+        <h2>🎯 歌单品味锐评</h2>
+        <p class="desc">输入网易云用户昵称或 UID，让 AI 锐评他的音乐品味</p>
+        <div class="input-group">
+          <input type="text" id="reviewInput" placeholder="支持用户昵称或 UID（数字）" />
+          <button id="reviewSearchBtn" class="btn primary">查询</button>
+        </div>
+        <div id="reviewError" class="error-msg"></div>
+      </section>
+
+      <!-- 重名用户选择 -->
+      <section class="card step" id="reviewUserSelectStep" style="display:none;">
+        <h2 id="reviewUserSelectTitle">找到多个用户，请选择</h2>
+        <div id="reviewUserSelectContainer"></div>
+        <div class="actions">
+          <button id="reviewConfirmUserBtn" class="btn primary" disabled>确认选择</button>
+          <button id="reviewBackToInputBtn" class="btn secondary">← 返回</button>
+        </div>
+      </section>
+
+      <!-- Step 2: 选择歌单 -->
+      <section class="card step" id="reviewStep2" style="display:none;">
+        <h2>选择歌单</h2>
+        <div id="reviewSelectedUserInfo" class="user-info-bar"></div>
+        <div class="full-review-section">
+          <button id="reviewFullBtn" class="btn full-review-btn">🎯 一键全员锐评（所有歌单）</button>
+          <div class="full-review-divider"><span>或者</span></div>
+          <div class="desc" style="margin-bottom:8px;">💡 想单独锐评某个歌单？选择一个歌单即可生成该歌单的专属提示词</div>
+        </div>
+        <div id="reviewPlaylistContainer"></div>
+        <div class="actions">
+          <button id="reviewGenerateBtn" class="btn primary" disabled>生成歌单提示词</button>
+        </div>
+      </section>
+
+      <!-- Step 3: 选择操作方式 -->
+      <section class="card step" id="reviewStep3" style="display:none;">
+        <h2>选择操作方式</h2>
+        <div id="reviewStep3Meta" style="margin-bottom:16px;">
+          <span id="reviewSongCount" class="count-badge"></span>
+          <span id="reviewPlaylistName" class="playlist-name-display"></span>
+        </div>
+        <div class="action-cards">
+          <div id="reviewChooseAi" class="action-card action-card-ai">
+            <div class="action-card-icon">🤖</div>
+            <div class="action-card-title">AI 分析</div>
+            <div class="action-card-desc">将提示词发送给 DeepSeek，自动生成毒舌锐评</div>
+          </div>
+          <div id="reviewChooseExport" class="action-card action-card-export">
+            <div class="action-card-icon">📝</div>
+            <div class="action-card-title">导出提示词</div>
+            <div class="action-card-desc">查看、复制或下载完整提示词文本</div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Step 4b: 导出提示词页 -->
-    <section class="step" id="step4b" style="display:none">
-      <div class="step-header">
-        <h2>📝 导出提示词</h2>
-        <button id="backFromExportBtn" class="btn secondary btn-sm">← 返回</button>
-      </div>
-      <div class="actions" style="margin-top:0;margin-bottom:16px;">
-        <span id="exportSongCount" class="count-badge"></span>
-        <span id="exportPlaylistName" class="playlist-name-display"></span>
-        <button id="copyPromptBtn" class="btn primary" style="margin-left:auto;">📋 复制</button>
-        <button id="exportTxtBtn" class="btn secondary">📥 下载 TXT</button>
-      </div>
-      <div id="copyHint" class="hint-text" style="margin-bottom:12px;"></div>
-      <div class="prompt-preview">
-        <div class="preview-header">
-          <span>提示词预览（只读）</span>
+        <div class="actions">
+          <button id="reviewBackToPlaylists" class="btn secondary">← 返回选择歌单</button>
         </div>
-        <pre id="promptText" class="preview-text"></pre>
-      </div>
-    </section>
+      </section>
+
+      <!-- Step 4a: AI 分析页 -->
+      <section class="card step" id="reviewStep4a" style="display:none;">
+        <div class="step-header">
+          <h2>🤖 AI 锐评</h2>
+          <button id="reviewBackFromAi" class="btn secondary btn-sm">← 返回</button>
+        </div>
+        <div class="ai-prompt-summary">
+          <span class="count-badge" id="reviewAiSongCount"></span>
+          <span id="reviewAiPlaylistName"></span>
+          <button id="reviewAiGoBtn" class="btn ai-btn" style="margin-left:auto;">🚀 开始分析</button>
+        </div>
+        <div id="reviewAiResult" style="display:none;">
+          <div class="ai-review-header">
+            <span>💬 AI 锐评结果</span>
+            <button id="reviewCopyAiBtn" class="btn icon-btn small-btn">📋 复制</button>
+          </div>
+          <div id="reviewAiContent" class="ai-review-content">
+            <div class="ai-loading"><div class="spinner small"></div><span>AI 正在锐评中...（约 30-60 秒）</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 4b: 导出提示词页 -->
+      <section class="card step" id="reviewStep4b" style="display:none;">
+        <div class="step-header">
+          <h2>📝 导出提示词</h2>
+          <button id="reviewBackFromExport" class="btn secondary btn-sm">← 返回</button>
+        </div>
+        <div class="actions" style="margin-top:0;margin-bottom:16px;">
+          <span id="reviewExportCount" class="count-badge"></span>
+          <span id="reviewExportName" class="playlist-name-display"></span>
+          <button id="reviewCopyPromptBtn" class="btn primary" style="margin-left:auto;">📋 复制</button>
+          <button id="reviewExportTxtBtn" class="btn secondary">📥 下载 TXT</button>
+        </div>
+        <div id="reviewCopyHint" class="hint-text" style="margin-bottom:12px;"></div>
+        <div class="prompt-preview">
+          <div class="preview-header"><span>提示词预览（只读）</span></div>
+          <pre id="reviewPromptText" class="preview-text"></pre>
+        </div>
+      </section>
+    </div>
 
     <!-- Loading -->
-    <div id="loading" class="loading" style="display:none">
+    <div id="loading" class="loading" style="display:none;">
       <div class="spinner"></div>
       <span id="loadingText">加载中...</span>
     </div>
   </div>
 
   <footer class="footer">
-    <span>歌单品味锐评助手 ·</span>
+    <span>云音乐趣味工坊 ·</span>
     <a href="https://github.com/xiongzikun0106/CloudMusicAnalyst" target="_blank">GitHub</a>
   </footer>
 
-  <!-- marked.js：Markdown 渲染 -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="config.js"></script>
+  <script src="battle.js"></script>
+  <script src="review.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

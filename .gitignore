@@ -4,10 +4,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
 # 环境变量
 .env
 .env.local
 .env.*.local
+
+# 缓存数据（战斗卡缓存）
+data/
+data/*.jsonl
 
 # IDE
 .vscode/
@@ -26,7 +36,12 @@ Thumbs.db
 # 部署文档（敏感信息含 API Key）
 DEPLOY.md
 
-# NeteaseCloudMusicApi 备份目录（已独立维护）
+# Wrangler 本地缓存（含账号信息）
+.wrangler/
+
+# 部署打包产物
+*.tar.gz
+
+# NeteaseCloudMusicApi 备份目录（已独立维护，构建时 clone）
 NeteaseCloudMusicApiBackup/
 servers/
-

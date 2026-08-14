@@ -1,6 +1,35 @@
-FROM node:24-alpine
+# 后端容器 — 内置 NeteaseCloudMusicApi(Node 20) + FastAPI(Python 3.11)
+# node:20-slim 自带 node+npm，无需在 python 镜像上手动装 node
+FROM node:20-slim
+
+# 安装 Python 3.11 + 构建工具 + libsndfile1（librosa 音频解码所需）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev python3-venv build-essential git curl libsndfile1 ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 1. Clone NeteaseCloudMusicApi 并安装依赖（node/npm 天然可用）
+#    注意：上游 package.json 含 "prepare": "husky install"（husky 为 devDep），
+#    在 --omit=dev 下执行会报 command not found (127)，故先删除 prepare 脚本。
+WORKDIR /app/ncm
+RUN git clone --depth 1 https://github.com/nooblong/NeteaseCloudMusicApiBackup.git /app/ncm \
+    && sed -i '/"prepare"[[:space:]]*:/d' package.json \
+    && npm install --omit=dev \
+    && rm -rf .git
+
+# 2. 安装 Python 依赖（放在复制后端代码之前，代码改动不触发依赖重装）
 WORKDIR /app
-RUN npm install express multer node-fetch@2
-COPY server.js .
-EXPOSE 3000
-CMD ["node", "server.js"]
+COPY backend/requirements.txt ./requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+
+# 3. 复制后端 Python 代码
+COPY backend/ ./backend/
+
+# 4. 缓存目录（挂载 volume 便于持久化）
+RUN mkdir -p /app/data && chmod +x /app/backend/start.sh
+
+ENV NCM_API_BASE=http://127.0.0.1:3000
+ENV CACHE_FILE=/app/data/cards_cache.db
+
+EXPOSE 8000
+
+CMD ["/bin/sh", "/app/backend/start.sh"]

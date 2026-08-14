@@ -16,11 +16,12 @@
  *   3. 在 Cloudflare Dashboard 设置 DEEPSEEK_API_KEY 环境变量
  */
 
-// NeteaseCloudMusicApi 部署地址（本地测试用 localhost，生产改为 Render 地址）
-const NCM_API_BASE = 'https://netease-cloud-music-api-backup-94lcuvn5c.vercel.app';
-
-// 需要代理的 NCM API 路径列表
+// NeteaseCloudMusicApi 部署地址 —— 生产环境请在 Cloudflare Dashboard 设置
+// NCM_API_BASE 环境变量，不要硬编码在代码/仓库里
 const NCM_PROXY_PATHS = ['/user/playlist', '/playlist/track/all', '/get/userids'];
+
+// 允许用户选择的模型白名单（防止被指定为更贵的模型刷费用）
+const ALLOWED_MODELS = ['deepseek-v4-flash', 'deepseek-chat', 'deepseek-reasoner'];
 
 export default {
   async fetch(request, env, ctx) {
@@ -42,7 +43,7 @@ export default {
         return await handleAiReview(request, env, corsHeaders);
       }
       if (NCM_PROXY_PATHS.includes(path)) {
-        return await handleNcmProxy(request, path, url.search, corsHeaders);
+        return await handleNcmProxy(request, env, path, url.search, corsHeaders);
       }
       return new Response(JSON.stringify({ code: 404, msg: 'Not Found' }), {
         status: 404,
@@ -57,7 +58,14 @@ export default {
   },
 };
 
-async function handleNcmProxy(request, path, query, corsHeaders) {
+async function handleNcmProxy(request, env, path, query, corsHeaders) {
+  const NCM_API_BASE = env.NCM_API_BASE || '';
+  if (!NCM_API_BASE) {
+    return new Response(JSON.stringify({ code: 500, msg: 'NCM_API_BASE 未配置' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   const targetUrl = `${NCM_API_BASE}${path}${query}`;
   const proxyHeaders = new Headers();
   proxyHeaders.set('Content-Type', 'application/x-www-form-urlencoded');
@@ -88,7 +96,8 @@ async function handleAiReview(request, env, corsHeaders) {
 
   const formData = await request.formData();
   const file = formData.get('file');
-  const model = formData.get('model') || 'deepseek-v4-flash';
+  const modelRaw = formData.get('model');
+  const model = ALLOWED_MODELS.includes(modelRaw) ? modelRaw : 'deepseek-v4-flash';
 
   if (!file) {
     return new Response(
